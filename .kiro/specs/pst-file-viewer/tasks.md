@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 0. Set up project infrastructure and CI
+- [x] 0. Set up project infrastructure and CI
   - Add SwiftLint via SPM plugin or Homebrew; create `.swiftlint.yml` with project conventions (line length, naming, etc.)
   - Add a pre-commit hook (via a `scripts/install-hooks.sh` bootstrap script) that runs SwiftLint `--strict` on staged `.swift` files
   - Create a GitHub Actions CI workflow (`.github/workflows/ci.yml`): build + run all tests on every push and PR
@@ -12,7 +12,7 @@
     - `aranetic/process-pst/four_nesting_levels.pst` — nested folder hierarchy
   - Document the bootstrap steps in the project README (run `scripts/install-hooks.sh`, required Xcode version, etc.)
 
-- [ ] 1. Add PstReader dependency and remove SwiftData scaffolding
+- [x] 1. Add PstReader dependency and remove SwiftData scaffolding
   - Add SPM dependency: `https://github.com/hughbe/PstReader` (from: `1.0.2`)
   - Remove `Item.swift` model and SwiftData `modelContainer` from `Free_PST_ViewerApp.swift`
   - Update entitlements to `com.apple.security.files.user-selected.read-write`
@@ -20,7 +20,7 @@
   - Verify CI workflow passes (green build + SwiftLint + tests)
   - _Requirements: 1.4_
 
-- [ ] 2. Create service layer and app-specific types
+- [x] 2. Create service layer and app-specific types
   - Create `PSTParserService` as non-isolated class with background `DispatchQueue` + `async/await` bridge (avoids `Sendable` issues with PstReader types)
   - Create `SearchService` with full-text search across messages
   - Create `ExportService` with .eml and .txt export support
@@ -28,7 +28,7 @@
   - Create `PSTViewerError` enum wrapping `PstReadError` for user-friendly messages
   - _Requirements: 1.4, 1.5, 5.1, 7.1, 7.2_
 
-- [ ] 3. Implement file picker and PST loading
+- [x] 3. Implement file picker and PST loading
   - Create FilePickerView with native macOS NSOpenPanel integration
   - Add file type filtering to show .pst and .ost files (PstReader supports both)
   - Implement `PSTViewModel` with `loadPSTFile(from:)` using `PstFile(contentsOf:)`
@@ -36,7 +36,7 @@
   - Write unit tests for file loading
   - _Requirements: 1.1, 1.2, 1.3, 1.5_
 
-- [ ] **Milestone A — Core foundation quality gate**
+- [x] **Milestone A — Core foundation quality gate**
   - All tests pass in CI; SwiftLint reports zero violations
   - PSTParserService can open a fixture PST and return folders/messages in tests
   - File picker → folder tree → email list flow works end-to-end in a manual smoke test
