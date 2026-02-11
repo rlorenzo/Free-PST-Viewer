@@ -2,30 +2,30 @@
 
 ## Introduction
 
-This feature will transform the Free PST Viewer Mac app into a comprehensive Outlook data file (.pst) browser and mail reader. Users will be able to browse their file system to locate PST files, open them, and view their contents in a familiar mail client interface. The app will provide functionality to navigate through folder structures within PST files, search for specific emails, and display email content including attachments and metadata.
+This feature will transform the Free PST Viewer Mac app into a comprehensive Outlook data file (.pst / .ost) browser and mail reader. Users will be able to browse their file system to locate Outlook data files, open them, and view their contents in a familiar mail client interface. The app will provide functionality to navigate through folder structures within these files, search for specific emails, and display email content including attachments and metadata.
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a user, I want to browse and select PST files from my file system, so that I can open and view Outlook data files stored on my Mac.
+**User Story:** As a user, I want to browse and select Outlook data files from my file system, so that I can open and view PST/OST files stored on my Mac.
 
 #### Acceptance Criteria
 
 1. WHEN the user launches the app THEN the system SHALL display a file browser interface
 2. WHEN the user clicks a "Browse" or "Open File" button THEN the system SHALL open a native macOS file picker dialog
-3. WHEN the user navigates through directories THEN the system SHALL only show .pst files as selectable options
-4. WHEN the user selects a valid .pst file THEN the system SHALL load and parse the file structure
-5. IF the selected file is not a valid PST format THEN the system SHALL display an error message and allow the user to select a different file
-6. WHEN a PST file is successfully loaded THEN the system SHALL display the folder structure in a sidebar navigation
+3. WHEN the user navigates through directories THEN the system SHALL show .pst and .ost files as selectable options
+4. WHEN the user selects a valid .pst or .ost file THEN the system SHALL load and parse the file structure
+5. IF the selected file is not a valid PST/OST format THEN the system SHALL display an error message and allow the user to select a different file
+6. WHEN a file is successfully loaded THEN the system SHALL display the folder structure in a sidebar navigation
 
 ### Requirement 2
 
-**User Story:** As a user, I want to navigate through the folder structure of a PST file, so that I can browse different mail folders like Inbox, Sent Items, and custom folders.
+**User Story:** As a user, I want to navigate through the folder structure of an Outlook data file, so that I can browse different mail folders like Inbox, Sent Items, and custom folders.
 
 #### Acceptance Criteria
 
-1. WHEN a PST file is loaded THEN the system SHALL display a hierarchical folder tree in the left sidebar
+1. WHEN a file is loaded THEN the system SHALL display a hierarchical folder tree in the left sidebar
 2. WHEN the user clicks on a folder THEN the system SHALL display the list of emails in that folder in the main content area
 3. WHEN a folder contains subfolders THEN the system SHALL show expand/collapse indicators
 4. WHEN the user expands a folder THEN the system SHALL reveal its subfolders with proper indentation
@@ -61,11 +61,11 @@ This feature will transform the Free PST Viewer Mac app into a comprehensive Out
 
 ### Requirement 5
 
-**User Story:** As a user, I want to search for specific emails within the PST file, so that I can quickly find emails based on content, sender, subject, or date criteria.
+**User Story:** As a user, I want to search for specific emails within the opened file, so that I can quickly find emails based on content, sender, subject, or date criteria.
 
 #### Acceptance Criteria
 
-1. WHEN the user enters text in a search box THEN the system SHALL search across email subjects, content, and sender information
+1. WHEN the user enters text in a search box THEN the system SHALL search across email subjects and sender information by default, with an option to include message body content
 2. WHEN search results are found THEN the system SHALL display matching emails in the main content area
 3. WHEN the user applies date filters THEN the system SHALL only show emails within the specified date range
 4. WHEN the user searches by sender THEN the system SHALL filter emails from specific email addresses
@@ -75,20 +75,20 @@ This feature will transform the Free PST Viewer Mac app into a comprehensive Out
 
 ### Requirement 6
 
-**User Story:** As a user, I want the app to handle large PST files efficiently, so that I can work with substantial email archives without performance issues.
+**User Story:** As a user, I want the app to handle large Outlook data files efficiently, so that I can work with substantial email archives without performance issues.
 
 #### Acceptance Criteria
 
-1. WHEN loading large PST files THEN the system SHALL display progress indicators during the loading process
-2. WHEN browsing folders with many emails THEN the system SHALL load email lists incrementally to maintain responsiveness
+1. WHEN loading large files THEN the system SHALL display progress indicators during the loading process
+2. WHEN browsing folders with many emails THEN the system SHALL render email lists in chunks to maintain responsiveness
 3. WHEN the app encounters memory constraints THEN the system SHALL implement efficient memory management to prevent crashes
 4. WHEN switching between folders THEN the system SHALL cache recently viewed content for faster navigation
-5. IF a PST file is corrupted or partially readable THEN the system SHALL load available content and notify the user of any issues
+5. IF a file is corrupted or partially readable THEN the system SHALL load available content and notify the user of any issues
 6. WHEN the app is processing large operations THEN the system SHALL remain responsive and allow user interaction
 
 ### Requirement 7
 
-**User Story:** As a user, I want to export or save individual emails or attachments, so that I can preserve important communications outside of the PST file.
+**User Story:** As a user, I want to export or save individual emails or attachments, so that I can preserve important communications outside of the Outlook data file.
 
 #### Acceptance Criteria
 
