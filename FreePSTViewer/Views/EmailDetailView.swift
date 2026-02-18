@@ -1,0 +1,192 @@
+import SwiftUI
+@preconcurrency import PstReader
+
+struct EmailDetailView: View {
+    @ObservedObject var viewModel: EmailDetailViewModel
+
+    var body: some View {
+        Group {
+            if viewModel.isLoading {
+                ProgressView("Loading email...")
+            } else if let error = viewModel.errorMessage {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let message = viewModel.detailedMessage {
+                EmailContentView(message: message)
+            } else {
+                Text("Select an email to view its contents")
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+}
+
+struct EmailContentView: View {
+    let message: PstFile.Message
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            EmailHeaderView(message: message)
+                .padding()
+
+            Divider()
+
+            EmailBodyView(message: message)
+        }
+    }
+}
+
+struct EmailHeaderView: View {
+    let message: PstFile.Message
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(message.subjectText ?? "(No Subject)")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .textSelection(.enabled)
+
+            headerRow("From:", value: message.senderDisplayString)
+            headerRow("To:", value: message.toRecipients)
+            if let cc = message.ccRecipients, !cc.isEmpty {
+                headerRow("Cc:", value: cc)
+            }
+            if let bcc = message.bccRecipients, !bcc.isEmpty {
+                headerRow("Bcc:", value: bcc)
+            }
+            if let date = message.date {
+                headerRow("Date:", value: formatDate(date))
+            }
+
+            if !message.attachments.isEmpty {
+                AttachmentListView(attachments: message.attachments)
+            }
+        }
+    }
+
+    private func headerRow(_ label: String, value: String?) -> some View {
+        HStack(alignment: .top, spacing: 4) {
+            Text(label)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+                .frame(width: 40, alignment: .trailing)
+            Text(value ?? "Unknown")
+                .font(.subheadline)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
+    }
+}
+
+struct AttachmentListView: View {
+    let attachments: [PstFile.Attachment]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Attachments:")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+
+            FlowLayout(spacing: 6) {
+                ForEach(Array(attachments.enumerated()), id: \.offset) { _, attachment in
+                    AttachmentBadge(attachment: attachment)
+                }
+            }
+        }
+    }
+}
+
+struct AttachmentBadge: View {
+    let attachment: PstFile.Attachment
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "paperclip")
+                .font(.caption)
+            Text(attachment.filename ?? "Untitled")
+                .font(.caption)
+                .lineLimit(1)
+            if let size = attachment.sizeInBytes {
+                Text("(\(formatByteCount(size)))")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.secondary.opacity(0.1))
+        .cornerRadius(4)
+    }
+}
+
+/// Simple flow layout for attachment badges.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = layout(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let result = layout(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() where index < subviews.count {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
+                proposal: .unspecified
+            )
+        }
+    }
+
+    private struct LayoutResult {
+        var positions: [CGPoint]
+        var size: CGSize
+    }
+
+    private func layout(proposal: ProposedViewSize, subviews: Subviews) -> LayoutResult {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > maxWidth, currentX > 0 {
+                currentX = 0
+                currentY += rowHeight + spacing
+                rowHeight = 0
+            }
+            positions.append(CGPoint(x: currentX, y: currentY))
+            rowHeight = max(rowHeight, size.height)
+            currentX += size.width + spacing
+            totalWidth = max(totalWidth, currentX - spacing)
+        }
+
+        return LayoutResult(
+            positions: positions,
+            size: CGSize(width: totalWidth, height: currentY + rowHeight)
+        )
+    }
+}

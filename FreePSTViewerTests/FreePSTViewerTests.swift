@@ -28,6 +28,35 @@ private func fixtureURL(_ filename: String) -> URL {
     return url
 }
 
+private struct FixtureRoot {
+    let service: PSTParserService
+    let file: PstFile
+    let root: PstFile.Folder
+}
+
+/// Loads a fixture and returns the root folder.
+private func loadFixtureRoot(_ filename: String) async throws -> FixtureRoot {
+    let service = PSTParserService()
+    let file = try await service.loadPSTFile(from: fixtureURL(filename))
+    let root = try #require(file.rootFolder)
+    return FixtureRoot(service: service, file: file, root: root)
+}
+
+/// Finds the first folder that has emails.
+private func firstFolderWithEmails(
+    in folder: PstFile.Folder,
+    service: PSTParserService
+) async throws -> PstFile.Folder? {
+    let messages = try await service.getMessages(from: folder)
+    if !messages.isEmpty { return folder }
+    for child in folder.children {
+        if let found = try await firstFolderWithEmails(in: child, service: service) {
+            return found
+        }
+    }
+    return nil
+}
+
 // MARK: - PSTParserService Tests
 
 struct PSTParserServiceTests {
@@ -54,6 +83,27 @@ struct PSTParserServiceTests {
                 from: URL(fileURLWithPath: "/nonexistent.pst")
             )
         }
+    }
+
+    @Test func getMessagesReturnsMessages() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        let folder = try await firstFolderWithEmails(in: fx.root, service: fx.service)
+        if let folder = folder {
+            let messages = try await fx.service.getMessages(from: folder)
+            #expect(!messages.isEmpty)
+        }
+    }
+
+    @Test func getMessageDetailsLoadsBody() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else {
+            return
+        }
+        let messages = try await fx.service.getMessages(from: folder)
+        let detailed = try await fx.service.getMessageDetails(for: messages[0])
+        #expect(detailed.hasDetails)
     }
 }
 
@@ -145,5 +195,186 @@ struct FolderViewModelTests {
 
         #expect(viewModel.selectedFolder != nil)
         #expect(viewModel.selectedFolderID == id)
+    }
+}
+
+// MARK: - EmailListViewModel Tests
+
+struct EmailListViewModelTests {
+
+    @Test @MainActor func loadEmailsPopulatesList() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+
+        let viewModel = EmailListViewModel(parserService: fx.service)
+        await viewModel.loadEmails(for: folder)
+
+        #expect(!viewModel.emails.isEmpty)
+        #expect(viewModel.isLoading == false)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test @MainActor func loadEmailsClearsSelection() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+
+        let viewModel = EmailListViewModel(parserService: fx.service)
+        viewModel.selectedEmailIndex = 0
+        await viewModel.loadEmails(for: folder)
+
+        #expect(viewModel.selectedEmailIndex == nil)
+    }
+
+    @Test @MainActor func selectedMessageReturnsCorrectEmail() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+
+        let viewModel = EmailListViewModel(parserService: fx.service)
+        await viewModel.loadEmails(for: folder)
+
+        #expect(viewModel.selectedMessage == nil)
+
+        viewModel.selectedEmailIndex = 0
+        #expect(viewModel.selectedMessage != nil)
+    }
+
+    @Test @MainActor func selectedMessageReturnsNilForOutOfBoundsIndex() {
+        let service = PSTParserService()
+        let viewModel = EmailListViewModel(parserService: service)
+
+        viewModel.selectedEmailIndex = 5
+        #expect(viewModel.selectedMessage == nil)
+    }
+
+    @Test @MainActor func sortByDateDescendingIsDefault() {
+        let service = PSTParserService()
+        let viewModel = EmailListViewModel(parserService: service)
+        #expect(viewModel.sortOrder == .dateDescending)
+    }
+
+    @Test @MainActor func sortChangesOrder() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+
+        let viewModel = EmailListViewModel(parserService: fx.service)
+        await viewModel.loadEmails(for: folder)
+
+        viewModel.sort(by: .subjectAscending)
+        #expect(viewModel.sortOrder == .subjectAscending)
+
+        if viewModel.emails.count >= 2 {
+            let first = viewModel.emails[0].subjectText ?? ""
+            let second = viewModel.emails[1].subjectText ?? ""
+            #expect(first <= second)
+        }
+    }
+
+    @Test @MainActor func sortColumnLabelReflectsOrder() {
+        let service = PSTParserService()
+        let viewModel = EmailListViewModel(parserService: service)
+
+        #expect(viewModel.sortColumnLabel == "Date")
+
+        viewModel.sort(by: .senderAscending)
+        #expect(viewModel.sortColumnLabel == "From")
+
+        viewModel.sort(by: .sizeDescending)
+        #expect(viewModel.sortColumnLabel == "Size")
+
+        viewModel.sort(by: .subjectAscending)
+        #expect(viewModel.sortColumnLabel == "Subject")
+    }
+
+    @Test @MainActor func isSortAscendingReflectsDirection() {
+        let service = PSTParserService()
+        let viewModel = EmailListViewModel(parserService: service)
+
+        #expect(viewModel.isSortAscending == false)
+
+        viewModel.sort(by: .dateAscending)
+        #expect(viewModel.isSortAscending == true)
+
+        viewModel.sort(by: .senderDescending)
+        #expect(viewModel.isSortAscending == false)
+    }
+
+    @Test @MainActor func loadEmptyFolderResultsInEmptyList() async throws {
+        let fx = try await loadFixtureRoot("four_nesting_levels.pst")
+        let viewModel = EmailListViewModel(parserService: fx.service)
+        await viewModel.loadEmails(for: fx.root)
+        #expect(viewModel.isLoading == false)
+        #expect(viewModel.errorMessage == nil)
+    }
+}
+
+// MARK: - EmailDetailViewModel Tests
+
+struct EmailDetailViewModelTests {
+
+    @Test @MainActor func loadDetailsPopulatesMessage() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+        let messages = try await fx.service.getMessages(from: folder)
+        let message = try #require(messages.first)
+
+        let viewModel = EmailDetailViewModel(parserService: fx.service)
+        await viewModel.loadDetails(for: message)
+
+        #expect(viewModel.detailedMessage != nil)
+        #expect(viewModel.detailedMessage?.hasDetails == true)
+        #expect(viewModel.isLoading == false)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test @MainActor func loadDetailsHasBodyContent() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+        let messages = try await fx.service.getMessages(from: folder)
+        let message = try #require(messages.first)
+
+        let viewModel = EmailDetailViewModel(parserService: fx.service)
+        await viewModel.loadDetails(for: message)
+
+        let detailed = try #require(viewModel.detailedMessage)
+        let hasBody = detailed.bodyText != nil || detailed.bodyHtmlString != nil
+        #expect(hasBody)
+    }
+
+    @Test @MainActor func clearResetsState() async throws {
+        let fx = try await loadFixtureRoot("test_unicode.pst")
+        guard let folder = try await firstFolderWithEmails(
+            in: fx.root, service: fx.service
+        ) else { return }
+        let messages = try await fx.service.getMessages(from: folder)
+        let message = try #require(messages.first)
+
+        let viewModel = EmailDetailViewModel(parserService: fx.service)
+        await viewModel.loadDetails(for: message)
+        #expect(viewModel.detailedMessage != nil)
+
+        viewModel.clear()
+        #expect(viewModel.detailedMessage == nil)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test @MainActor func initialStateIsEmpty() {
+        let service = PSTParserService()
+        let viewModel = EmailDetailViewModel(parserService: service)
+
+        #expect(viewModel.detailedMessage == nil)
+        #expect(viewModel.isLoading == false)
+        #expect(viewModel.errorMessage == nil)
     }
 }

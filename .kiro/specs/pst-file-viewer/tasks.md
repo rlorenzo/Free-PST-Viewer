@@ -41,7 +41,7 @@
   - PSTParserService can open a fixture PST and return folders/messages in tests
   - File picker → folder tree → email list flow works end-to-end in a manual smoke test
 
-- [ ] 4. Implement folder tree view model and UI
+- [x] 4. Implement folder tree view model and UI
   - Create `FolderViewModel` with folder selection and expansion state
   - Create `FolderTreeView` displaying `PstFile.Folder` hierarchy using `.name`, `.emailCount`, `.hasSubfolders`
   - Add expand/collapse functionality for folders with children
@@ -50,7 +50,7 @@
   - Write unit tests for folder view model logic
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 5. Create email list view model and UI
+- [x] 5. Create email list view model and UI
   - Create `EmailListViewModel` loading messages via `parserService.getMessages(from: folder)`
   - Implement EmailListView with table display using `.subjectText`, `.senderDisplayString`, `.date`, `.sizeInBytes`
   - Add sortable columns using `EmailSortOrder`
@@ -59,7 +59,7 @@
   - Write unit tests for email list and sorting
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 6. Implement email detail view and content loading
+- [x] 6. Implement email detail view and content loading
   - Create EmailDetailView displaying full email content
   - Load details via `parserService.getMessageDetails(for: message)` on selection
   - Display headers using `.subjectText`, `.senderDisplayString`, `.toRecipients`, `.ccRecipients`, `.date`
@@ -69,7 +69,7 @@
   - Write unit tests for email content loading
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.6_
 
-- [ ] **Milestone B — Read path quality gate**
+- [x] **Milestone B — Read path quality gate**
   - All tests pass in CI; SwiftLint clean
   - Full read flow works: open PST → browse folders → view email list → read email detail with HTML rendering
   - Unit test coverage exists for FolderViewModel, EmailListViewModel, and email content loading

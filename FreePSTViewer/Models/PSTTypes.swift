@@ -1,6 +1,6 @@
 import Foundation
 
-enum EmailSortOrder {
+enum EmailSortOrder: Equatable {
     case dateAscending, dateDescending
     case subjectAscending, subjectDescending
     case senderAscending, senderDescending
@@ -9,6 +9,12 @@ enum EmailSortOrder {
 
 enum ExportFormat {
     case eml, txt
+}
+
+func formatByteCount(_ bytes: UInt32) -> String {
+    let formatter = ByteCountFormatter()
+    formatter.countStyle = .file
+    return formatter.string(fromByteCount: Int64(bytes))
 }
 
 struct SearchFilters {

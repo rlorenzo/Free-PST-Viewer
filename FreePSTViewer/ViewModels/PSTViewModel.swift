@@ -7,7 +7,11 @@ class PSTViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    let parserService = PSTParserService()
+    let parserService: PSTParserService
+
+    init(parserService: PSTParserService = PSTParserService()) {
+        self.parserService = parserService
+    }
 
     func loadFile(from url: URL) async {
         isLoading = true

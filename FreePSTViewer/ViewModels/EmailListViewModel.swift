@@ -9,6 +9,11 @@ class EmailListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    var selectedMessage: PstFile.Message? {
+        guard let index = selectedEmailIndex, emails.indices.contains(index) else { return nil }
+        return emails[index]
+    }
+
     private let parserService: PSTParserService
 
     init(parserService: PSTParserService) {
@@ -18,6 +23,7 @@ class EmailListViewModel: ObservableObject {
     func loadEmails(for folder: PstFile.Folder) async {
         isLoading = true
         errorMessage = nil
+        selectedEmailIndex = nil
         do {
             emails = try await parserService.getMessages(from: folder)
             sortEmails()
@@ -28,13 +34,27 @@ class EmailListViewModel: ObservableObject {
         isLoading = false
     }
 
-    func selectEmail(at index: Int) {
-        selectedEmailIndex = index
-    }
-
     func sort(by order: EmailSortOrder) {
         sortOrder = order
         sortEmails()
+    }
+
+    var sortColumnLabel: String {
+        switch sortOrder {
+        case .dateDescending, .dateAscending: return "Date"
+        case .subjectDescending, .subjectAscending: return "Subject"
+        case .senderDescending, .senderAscending: return "From"
+        case .sizeDescending, .sizeAscending: return "Size"
+        }
+    }
+
+    var isSortAscending: Bool {
+        switch sortOrder {
+        case .dateAscending, .subjectAscending, .senderAscending, .sizeAscending:
+            return true
+        case .dateDescending, .subjectDescending, .senderDescending, .sizeDescending:
+            return false
+        }
     }
 
     private func sortEmails() {

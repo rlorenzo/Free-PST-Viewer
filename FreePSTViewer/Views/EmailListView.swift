@@ -21,6 +21,51 @@ struct EmailListView: View {
                 }
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                SortMenu(viewModel: viewModel)
+            }
+        }
+    }
+}
+
+struct SortMenu: View {
+    @ObservedObject var viewModel: EmailListViewModel
+
+    var body: some View {
+        Menu {
+            sortButton("Date", ascending: .dateAscending, descending: .dateDescending)
+            sortButton("Subject", ascending: .subjectAscending, descending: .subjectDescending)
+            sortButton("From", ascending: .senderAscending, descending: .senderDescending)
+            sortButton("Size", ascending: .sizeAscending, descending: .sizeDescending)
+        } label: {
+            Label(
+                "Sort by \(viewModel.sortColumnLabel)",
+                systemImage: viewModel.isSortAscending ? "arrow.up" : "arrow.down"
+            )
+        }
+    }
+
+    private func sortButton(
+        _ label: String,
+        ascending: EmailSortOrder,
+        descending: EmailSortOrder
+    ) -> some View {
+        let isActive = viewModel.sortOrder == ascending || viewModel.sortOrder == descending
+        return Button {
+            if isActive {
+                viewModel.sort(by: viewModel.isSortAscending ? descending : ascending)
+            } else {
+                viewModel.sort(by: descending)
+            }
+        } label: {
+            HStack {
+                Text(label)
+                if isActive {
+                    Image(systemName: viewModel.isSortAscending ? "arrow.up" : "arrow.down")
+                }
+            }
+        }
     }
 }
 
@@ -40,6 +85,12 @@ struct EmailRow: View {
                     .lineLimit(1)
 
                 Spacer()
+
+                if let size = email.sizeInBytes {
+                    Text(formatByteCount(size))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
 
                 if let date = email.date {
                     Text(date, style: .date)
