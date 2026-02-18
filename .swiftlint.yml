@@ -1,0 +1,58 @@
+# SwiftLint configuration for Free PST Viewer
+
+excluded:
+  - .build
+  - DerivedData
+  - .swiftpm
+
+disabled_rules:
+  - todo
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - contains_over_first_not_nil
+  - fatal_error_message
+  - first_where
+  - overridden_super_call
+  - private_action
+  - private_outlet
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - vertical_parameter_alignment_on_call
+
+line_length:
+  warning: 120
+  error: 200
+
+file_length:
+  warning: 400
+  error: 1000
+
+type_body_length:
+  warning: 300
+  error: 500
+
+function_body_length:
+  warning: 50
+  error: 100
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 50
+    error: 60
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - i
+    - x
+    - y
+    - z
+    - id

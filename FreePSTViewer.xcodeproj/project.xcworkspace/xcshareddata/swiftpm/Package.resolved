@@ -1,0 +1,51 @@
+{
+  "originHash" : "8c3a62b48345ce3c519e5524ec0d15e3e3e86185fe254dcbc70d18c5f183e60a",
+  "pins" : [
+    {
+      "identity" : "datastream",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hughbe/DataStream",
+      "state" : {
+        "revision" : "36347be43d95e15263a37883ffc341019fdb733b",
+        "version" : "2.0.5"
+      }
+    },
+    {
+      "identity" : "pstreader",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hughbe/PstReader",
+      "state" : {
+        "revision" : "0720beb4cfe5c4e5af540a7366292b2c037794dd",
+        "version" : "1.0.2"
+      }
+    },
+    {
+      "identity" : "swiftbitfield",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hughbe/SwiftBitField",
+      "state" : {
+        "revision" : "58adee709619b00175ad660cf0755fd2cd0d7af1",
+        "version" : "1.0.1"
+      }
+    },
+    {
+      "identity" : "swiftmapi",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hughbe/SwiftMAPI",
+      "state" : {
+        "revision" : "08bce5dc68a2be1b129823a2d966be78e82ebfc8",
+        "version" : "1.2.5"
+      }
+    },
+    {
+      "identity" : "windowsdatatypes",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hughbe/WindowsDataTypes",
+      "state" : {
+        "revision" : "470932b721d9f2590aca2ed5850e58cf5b4f0492",
+        "version" : "1.0.13"
+      }
+    }
+  ],
+  "version" : 3
+}
