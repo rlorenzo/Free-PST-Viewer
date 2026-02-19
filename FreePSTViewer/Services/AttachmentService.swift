@@ -78,7 +78,13 @@ class AttachmentService {
             at: tempDir,
             withIntermediateDirectories: true
         )
-        let tempURL = tempDir.appendingPathComponent(filename)
+        let nameURL = URL(fileURLWithPath: filename)
+        let base = nameURL.deletingPathExtension().lastPathComponent
+        let ext = nameURL.pathExtension
+        let uniqueName = ext.isEmpty
+            ? "\(base)_\(UUID().uuidString)"
+            : "\(base)_\(UUID().uuidString).\(ext)"
+        let tempURL = tempDir.appendingPathComponent(uniqueName)
         try data.write(to: tempURL)
         tempFiles.append(tempURL)
 

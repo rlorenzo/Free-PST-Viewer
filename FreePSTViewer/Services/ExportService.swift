@@ -127,19 +127,19 @@ struct ExportService {
         headers += "MIME-Version: 1.0\r\n"
 
         if let from = formatSender(message) {
-            headers += "From: \(from)\r\n"
+            headers += "From: \(encodeHeaderIfNeeded(from))\r\n"
         }
         if let to = message.toRecipients {
-            headers += "To: \(to)\r\n"
+            headers += "To: \(encodeHeaderIfNeeded(to))\r\n"
         }
         if let cc = message.ccRecipients, !cc.isEmpty {
-            headers += "Cc: \(cc)\r\n"
+            headers += "Cc: \(encodeHeaderIfNeeded(cc))\r\n"
         }
         if let bcc = message.bccRecipients, !bcc.isEmpty {
-            headers += "Bcc: \(bcc)\r\n"
+            headers += "Bcc: \(encodeHeaderIfNeeded(bcc))\r\n"
         }
         if let subject = message.subjectText {
-            headers += "Subject: \(subject)\r\n"
+            headers += "Subject: \(encodeHeaderIfNeeded(subject))\r\n"
         }
         if let date = message.date {
             headers += "Date: \(rfc2822Date(date))\r\n"
@@ -152,29 +152,19 @@ struct ExportService {
         return headers
     }
 
-    /// Replaces Content-Type in headers, or appends if
-    /// the headers came from transportMessageHeaders and
-    /// already include one.
-    private func replaceContentType(
-        in text: String,
-        with newType: String
-    ) -> String {
+    /// Replaces or inserts a Content-Type header line.
+    private func replaceContentType(in text: String, with newType: String) -> String {
         let lines = text.components(separatedBy: "\r\n")
         var result: [String] = []
         var replaced = false
         var skipContinuation = false
-
         for line in lines {
             if skipContinuation {
-                if line.hasPrefix(" ") || line.hasPrefix("\t") {
-                    continue
-                }
+                if line.hasPrefix(" ") || line.hasPrefix("\t") { continue }
                 skipContinuation = false
             }
             if line.lowercased().hasPrefix("content-type:") {
-                result.append(
-                    "Content-Type: \(newType)"
-                )
+                result.append("Content-Type: \(newType)")
                 replaced = true
                 skipContinuation = true
             } else {
@@ -182,14 +172,8 @@ struct ExportService {
             }
         }
         var output = result.joined(separator: "\r\n")
-        if !replaced {
-            let sep = "\r\n\r\n"
-            if let range = output.range(of: sep) {
-                output.insert(
-                    contentsOf: "Content-Type: \(newType)\r\n",
-                    at: range.lowerBound
-                )
-            }
+        if !replaced, let range = output.range(of: "\r\n\r\n") {
+            output.insert(contentsOf: "Content-Type: \(newType)\r\n", at: range.lowerBound)
         }
         return output
     }
@@ -286,6 +270,29 @@ struct ExportService {
         )
     }
 
+    /// Encodes a header value using RFC 2047 Q-encoding when it
+    /// contains non-ASCII characters.
+    private func encodeHeaderIfNeeded(
+        _ value: String
+    ) -> String {
+        let bytes = [UInt8](value.utf8)
+        guard bytes.contains(where: { $0 & 0x80 != 0 }) else {
+            return value
+        }
+        var encoded = ""
+        for byte in bytes {
+            switch byte {
+            case 0x20:
+                encoded.append("_")
+            case 0x30...0x39, 0x41...0x5A, 0x61...0x7A:
+                encoded.append(Character(UnicodeScalar(byte)))
+            default:
+                encoded.append(String(format: "=%02X", byte))
+            }
+        }
+        return "=?utf-8?Q?\(encoded)?="
+    }
+
     /// Produces a sanitized filename from a subject line.
     static func suggestedFilename(
         for message: PstFile.Message,
@@ -308,35 +315,24 @@ struct ExportService {
 
 private func stripHtml(_ html: String) -> String {
     var text = html
-    let breakPattern =
-        "<br\\s*/?>|</p>|</div>|</tr>|</li>"
-    if let regex = try? NSRegularExpression(
-        pattern: breakPattern,
-        options: .caseInsensitive
-    ) {
-        text = regex.stringByReplacingMatches(
-            in: text,
-            range: NSRange(text.startIndex..., in: text),
-            withTemplate: "\n"
-        )
+    let patterns: [(String, String)] = [
+        ("<br\\s*/?>|</p>|</div>|</tr>|</li>", "\n"),
+        ("<[^>]+>", "")
+    ]
+    for (pattern, template) in patterns {
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+            text = regex.stringByReplacingMatches(
+                in: text, range: NSRange(text.startIndex..., in: text), withTemplate: template
+            )
+        }
     }
-    if let tagRegex = try? NSRegularExpression(
-        pattern: "<[^>]+>",
-        options: []
-    ) {
-        text = tagRegex.stringByReplacingMatches(
-            in: text,
-            range: NSRange(text.startIndex..., in: text),
-            withTemplate: ""
-        )
+    let entities: [(String, String)] = [
+        ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
+        ("&quot;", "\""), ("&#39;", "'"), ("&nbsp;", " ")
+    ]
+    for (entity, char) in entities {
+        text = text.replacingOccurrences(of: entity, with: char)
     }
-    text = text
-        .replacingOccurrences(of: "&amp;", with: "&")
-        .replacingOccurrences(of: "&lt;", with: "<")
-        .replacingOccurrences(of: "&gt;", with: ">")
-        .replacingOccurrences(of: "&quot;", with: "\"")
-        .replacingOccurrences(of: "&#39;", with: "'")
-        .replacingOccurrences(of: "&nbsp;", with: " ")
     return text
 }
 
@@ -346,33 +342,50 @@ private func quotedPrintableEncode(
     guard let data = string.data(using: .utf8) else {
         return string
     }
-    var result = ""
-    var lineLen = 0
+    var enc = QPEncoder()
     for byte in data {
-        let char = Character(UnicodeScalar(byte))
+        enc.feed(byte)
+    }
+    enc.flush()
+    return enc.result
+}
+
+private struct QPEncoder {
+    var result = ""
+    private var lineLen = 0
+    private var pendingWS: UInt8?
+
+    mutating func feed(_ byte: UInt8) {
         if byte == 0x0D || byte == 0x0A {
-            result.append(char)
+            if let ws = pendingWS { emitEncoded(ws); pendingWS = nil }
+            result.append(Character(UnicodeScalar(byte)))
             lineLen = 0
-        } else if byte == 0x09
-                    || (byte >= 0x20 && byte <= 0x7E
-                        && byte != 0x3D) {
-            if lineLen >= 75 {
-                result += "=\r\n"
-                lineLen = 0
-            }
-            result.append(char)
-            lineLen += 1
+        } else if byte == 0x20 || byte == 0x09 {
+            if let ws = pendingWS { emitLiteral(ws) }
+            pendingWS = byte
         } else {
-            let encoded = String(
-                format: "=%02X", byte
-            )
-            if lineLen + 3 > 76 {
-                result += "=\r\n"
-                lineLen = 0
+            if let ws = pendingWS { emitLiteral(ws); pendingWS = nil }
+            if byte >= 0x20 && byte <= 0x7E && byte != 0x3D {
+                emitLiteral(byte)
+            } else {
+                emitEncoded(byte)
             }
-            result += encoded
-            lineLen += 3
         }
     }
-    return result
+
+    mutating func flush() {
+        if let ws = pendingWS { emitEncoded(ws); pendingWS = nil }
+    }
+
+    private mutating func emitLiteral(_ byte: UInt8) {
+        if lineLen >= 75 { result += "=\r\n"; lineLen = 0 }
+        result.append(Character(UnicodeScalar(byte)))
+        lineLen += 1
+    }
+
+    private mutating func emitEncoded(_ byte: UInt8) {
+        if lineLen + 3 > 76 { result += "=\r\n"; lineLen = 0 }
+        result += String(format: "=%02X", byte)
+        lineLen += 3
+    }
 }

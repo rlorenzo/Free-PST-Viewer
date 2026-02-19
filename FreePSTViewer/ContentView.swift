@@ -53,6 +53,7 @@ struct ContentView: View {
             ToolbarItem(placement: .primaryAction) {
                 FilePickerButton { url in
                     Task {
+                        attachmentService.cleanupTempFiles()
                         detailViewModel.clear()
                         searchViewModel.clearSearch()
                         selectedSearchIndex = nil

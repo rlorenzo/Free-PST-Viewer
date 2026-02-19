@@ -9,6 +9,7 @@ class EmailListViewModel: ObservableObject {
     @Published var sortOrder: EmailSortOrder = .dateDescending
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var exportProgress: Double?
 
     var selectedMessage: PstFile.Message? {
         guard let index = selectedEmailIndex, emails.indices.contains(index) else { return nil }
@@ -88,9 +89,12 @@ class EmailListViewModel: ObservableObject {
         format: ExportFormat
     ) async {
         let service = ExportService()
+        let total = emails.count
+        exportProgress = 0
         var failures: [String] = []
         for (index, email) in emails.enumerated() {
             do {
+                try Task.checkCancellation()
                 let detailed = try await parserService
                     .getMessageDetails(for: email)
                 let exportURL = uniqueExportURL(
@@ -100,6 +104,8 @@ class EmailListViewModel: ObservableObject {
                 try service.exportEmail(
                     detailed, to: exportURL, format: format
                 )
+            } catch is CancellationError {
+                break
             } catch {
                 let subject = email.subjectText
                     ?? "Email \(index + 1)"
@@ -107,7 +113,9 @@ class EmailListViewModel: ObservableObject {
                     "\(subject): \(error.localizedDescription)"
                 )
             }
+            exportProgress = Double(index + 1) / Double(total)
         }
+        exportProgress = nil
         if !failures.isEmpty {
             let summary = failures.count == 1
                 ? failures[0]
