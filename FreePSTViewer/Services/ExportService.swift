@@ -108,14 +108,16 @@ struct ExportService {
                 in: output,
                 with: "text/html; charset=\"utf-8\""
             )
-            output += html
+            output += "Content-Transfer-Encoding: quoted-printable\r\n\r\n"
+            output += quotedPrintableEncode(html)
             output += "\r\n"
         } else if let text = bodyText {
             output = replaceContentType(
                 in: output,
                 with: "text/plain; charset=\"utf-8\""
             )
-            output += text
+            output += "Content-Transfer-Encoding: quoted-printable\r\n\r\n"
+            output += quotedPrintableEncode(text)
             output += "\r\n"
         }
     }
