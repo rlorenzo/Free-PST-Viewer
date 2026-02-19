@@ -103,7 +103,7 @@ struct HTMLEmailView: NSViewRepresentable {
         var result = html
         // Remove inline event handlers (onclick, onerror, onload, etc.)
         if let eventRegex = try? NSRegularExpression(
-            pattern: "\\s+on\\w+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)",
+            pattern: "\\s*on\\w+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)",
             options: .caseInsensitive
         ) {
             result = eventRegex.stringByReplacingMatches(

@@ -105,8 +105,8 @@ struct SearchServiceTests {
         let searchService = SearchService(parserService: fx.service)
 
         let futureRange = DateInterval(
-            start: Date(timeIntervalSinceNow: 86400 * 365 * 100),
-            end: Date(timeIntervalSinceNow: 86400 * 365 * 200)
+            start: Date(timeIntervalSinceNow: 86400 * 365 * 1),
+            end: Date(timeIntervalSinceNow: 86400 * 365 * 2)
         )
         let filtered = try await searchService.searchEmails(
             in: [fx.root],
