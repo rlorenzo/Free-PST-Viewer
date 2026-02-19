@@ -3,6 +3,7 @@ import SwiftUI
 
 struct EmailDetailView: View {
     @ObservedObject var viewModel: EmailDetailViewModel
+    let attachmentService: AttachmentService
 
     var body: some View {
         Group {
@@ -18,7 +19,10 @@ struct EmailDetailView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let message = viewModel.detailedMessage {
-                EmailContentView(message: message)
+                EmailContentView(
+                    message: message,
+                    attachmentService: attachmentService
+                )
             } else {
                 Text("Select an email to view its contents")
                     .foregroundColor(.secondary)
@@ -30,21 +34,29 @@ struct EmailDetailView: View {
 
 struct EmailContentView: View {
     let message: PstFile.Message
+    let attachmentService: AttachmentService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EmailHeaderView(message: message)
-                .padding()
+            EmailHeaderView(
+                message: message,
+                attachmentService: attachmentService
+            )
+            .padding()
 
             Divider()
 
-            EmailBodyView(message: message)
+            EmailBodyView(
+                message: message,
+                attachments: message.attachments
+            )
         }
     }
 }
 
 struct EmailHeaderView: View {
     let message: PstFile.Message
+    let attachmentService: AttachmentService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -66,7 +78,10 @@ struct EmailHeaderView: View {
             }
 
             if !message.attachments.isEmpty {
-                AttachmentListView(attachments: message.attachments)
+                AttachmentListView(
+                    attachments: message.attachments,
+                    attachmentService: attachmentService
+                )
             }
         }
     }
@@ -94,6 +109,8 @@ struct EmailHeaderView: View {
 
 struct AttachmentListView: View {
     let attachments: [PstFile.Attachment]
+    let attachmentService: AttachmentService
+    @State private var errorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -103,9 +120,44 @@ struct AttachmentListView: View {
                 .foregroundColor(.secondary)
 
             FlowLayout(spacing: 6) {
-                ForEach(Array(attachments.enumerated()), id: \.offset) { _, attachment in
-                    AttachmentBadge(attachment: attachment)
+                ForEach(
+                    Array(attachments.enumerated()),
+                    id: \.offset
+                ) { _, attachment in
+                    AttachmentBadge(
+                        attachment: attachment,
+                        onSave: { saveAttachment(attachment) },
+                        onOpen: { openAttachment(attachment) }
+                    )
                 }
+            }
+
+            if let error = errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+    }
+
+    private func saveAttachment(_ att: PstFile.Attachment) {
+        Task {
+            do {
+                try await attachmentService
+                    .saveAttachmentWithPanel(att)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func openAttachment(_ att: PstFile.Attachment) {
+        Task {
+            do {
+                try await attachmentService
+                    .openAttachment(att)
+            } catch {
+                errorMessage = error.localizedDescription
             }
         }
     }
@@ -113,6 +165,8 @@ struct AttachmentListView: View {
 
 struct AttachmentBadge: View {
     let attachment: PstFile.Attachment
+    let onSave: () -> Void
+    let onOpen: () -> Void
 
     var body: some View {
         HStack(spacing: 4) {
@@ -131,6 +185,10 @@ struct AttachmentBadge: View {
         .padding(.vertical, 4)
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(4)
+        .contextMenu {
+            Button("Save As...") { onSave() }
+            Button("Open") { onOpen() }
+        }
     }
 }
 

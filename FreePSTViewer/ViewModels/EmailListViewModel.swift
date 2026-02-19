@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 @preconcurrency import PstReader
 
@@ -54,6 +55,68 @@ class EmailListViewModel: ObservableObject {
             return true
         case .dateDescending, .subjectDescending, .senderDescending, .sizeDescending:
             return false
+        }
+    }
+
+    func exportSingleEmail(
+        _ message: PstFile.Message,
+        format: ExportFormat
+    ) async {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue =
+            ExportService.suggestedFilename(
+                for: message, format: format
+            )
+        guard panel.runModal() == .OK,
+              let url = panel.url else { return }
+        do {
+            let detailed = try await parserService
+                .getMessageDetails(for: message)
+            let service = ExportService()
+            try service.exportEmail(
+                detailed, to: url, format: format
+            )
+        } catch {
+            errorMessage = PSTViewerError.exportError(
+                error.localizedDescription
+            ).errorDescription
+        }
+    }
+
+    func batchExport(
+        to directory: URL,
+        format: ExportFormat
+    ) async {
+        let service = ExportService()
+        var failCount = 0
+        for (index, email) in emails.enumerated() {
+            do {
+                let detailed = try await parserService
+                    .getMessageDetails(for: email)
+                var filename =
+                    ExportService.suggestedFilename(
+                        for: detailed, format: format
+                    )
+                // Avoid name collisions by appending index
+                let ext = format == .eml ? "eml" : "txt"
+                let base = String(
+                    filename.dropLast(ext.count + 1)
+                )
+                filename = "\(base)_\(index + 1).\(ext)"
+                let url = directory.appendingPathComponent(
+                    filename
+                )
+                try service.exportEmail(
+                    detailed, to: url, format: format
+                )
+            } catch {
+                failCount += 1
+            }
+        }
+        if failCount > 0 {
+            errorMessage = PSTViewerError.exportError(
+                "\(failCount) email(s) failed to export."
+            ).errorDescription
         }
     }
 
