@@ -5,7 +5,7 @@ import Testing
 
 // MARK: - Fixture Helpers
 
-final class BundleFinder {}
+private final class BundleFinder {}
 
 func fixtureURL(_ filename: String) -> URL {
     let name = (filename as NSString).deletingPathExtension

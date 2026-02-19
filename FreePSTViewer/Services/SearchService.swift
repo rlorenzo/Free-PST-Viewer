@@ -2,6 +2,7 @@ import Foundation
 @preconcurrency import PstReader
 
 struct SearchService {
+    static let maxResults = 10_000
     private let parserService: PSTParserService
 
     init(parserService: PSTParserService) {
@@ -36,13 +37,16 @@ struct SearchService {
     ) async throws {
         for folder in folders {
             try Task.checkCancellation()
+            guard results.count < Self.maxResults else { return }
             let messages = try await parserService.getMessages(from: folder)
             for message in messages {
                 try Task.checkCancellation()
+                guard results.count < Self.maxResults else { return }
                 if !passesFilters(message, filters: filters) {
                     continue
                 }
-                // Stage 1: metadata search
+                // Stage 1: metadata search — if matched, skip body
+                // search via `continue` to avoid duplicates.
                 if matchesMetadata(message, query: query) {
                     results.append(message)
                     continue

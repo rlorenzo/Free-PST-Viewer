@@ -80,7 +80,7 @@ struct HTMLEmailView: NSViewRepresentable {
     /// Resolves cid: references in HTML to data: URIs using
     /// inline attachment data.
     private var resolvedHTML: String {
-        var result = html
+        var result = sanitizeHTML(html)
         for attachment in attachments {
             guard let contentId = attachment.attachContentId,
                   !contentId.isEmpty,
@@ -92,6 +92,35 @@ struct HTMLEmailView: NSViewRepresentable {
             result = result.replacingOccurrences(
                 of: "cid:\(contentId)",
                 with: dataURI
+            )
+        }
+        return result
+    }
+
+    /// Strips inline event handlers and javascript: URIs from
+    /// HTML to mitigate XSS risks beyond allowsContentJavaScript.
+    private func sanitizeHTML(_ html: String) -> String {
+        var result = html
+        // Remove inline event handlers (onclick, onerror, onload, etc.)
+        if let eventRegex = try? NSRegularExpression(
+            pattern: "\\s+on\\w+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)",
+            options: .caseInsensitive
+        ) {
+            result = eventRegex.stringByReplacingMatches(
+                in: result,
+                range: NSRange(result.startIndex..., in: result),
+                withTemplate: ""
+            )
+        }
+        // Remove javascript: URIs in href/src/action attributes
+        if let jsRegex = try? NSRegularExpression(
+            pattern: "(href|src|action)\\s*=\\s*([\"'])\\s*javascript:",
+            options: .caseInsensitive
+        ) {
+            result = jsRegex.stringByReplacingMatches(
+                in: result,
+                range: NSRange(result.startIndex..., in: result),
+                withTemplate: "$1=$2#blocked:"
             )
         }
         return result

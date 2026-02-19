@@ -3,6 +3,7 @@ import Foundation
 @preconcurrency import PstReader
 
 /// Handles attachment save and open operations.
+@MainActor
 class AttachmentService {
     private let parserService: PSTParserService
     private var tempFiles: [URL] = []
@@ -12,7 +13,6 @@ class AttachmentService {
     }
 
     /// Saves an attachment to a user-chosen location via NSSavePanel.
-    @MainActor
     func saveAttachmentWithPanel(
         _ attachment: PstFile.Attachment
     ) async throws {
@@ -40,7 +40,6 @@ class AttachmentService {
 
     /// Opens an attachment by saving to a temp directory and
     /// launching with the default app.
-    @MainActor
     func openAttachment(
         _ attachment: PstFile.Attachment
     ) async throws {
@@ -51,7 +50,12 @@ class AttachmentService {
                 "No data available for this attachment."
             )
         }
-        let filename = detailed.filename ?? "attachment"
+        let rawFilename = detailed.filename ?? "attachment"
+        // Sanitize to a safe basename: strip path components
+        // and traversal sequences to prevent directory escape.
+        let filename = URL(fileURLWithPath: rawFilename)
+            .lastPathComponent
+            .replacingOccurrences(of: "..", with: "_")
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(
                 "FreePSTViewer", isDirectory: true

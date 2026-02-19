@@ -142,6 +142,7 @@ struct AttachmentListView: View {
 
     private func saveAttachment(_ att: PstFile.Attachment) {
         Task {
+            errorMessage = nil
             do {
                 try await attachmentService
                     .saveAttachmentWithPanel(att)
@@ -153,6 +154,7 @@ struct AttachmentListView: View {
 
     private func openAttachment(_ att: PstFile.Attachment) {
         Task {
+            errorMessage = nil
             do {
                 try await attachmentService
                     .openAttachment(att)

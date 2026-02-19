@@ -285,6 +285,7 @@ struct ExportServiceTests {
 
 // MARK: - AttachmentService Tests
 
+@MainActor
 struct AttachmentServiceTests {
 
     @Test func saveAttachmentWritesFileData() async throws {

@@ -88,7 +88,8 @@ class EmailListViewModel: ObservableObject {
         format: ExportFormat
     ) async {
         let service = ExportService()
-        var failCount = 0
+        let fileManager = FileManager.default
+        var failures: [String] = []
         for (index, email) in emails.enumerated() {
             do {
                 let detailed = try await parserService
@@ -97,25 +98,47 @@ class EmailListViewModel: ObservableObject {
                     ExportService.suggestedFilename(
                         for: detailed, format: format
                     )
-                // Avoid name collisions by appending index
+                // Avoid name collisions within this batch by
+                // appending index
                 let ext = format == .eml ? "eml" : "txt"
                 let base = String(
                     filename.dropLast(ext.count + 1)
                 )
                 filename = "\(base)_\(index + 1).\(ext)"
-                let url = directory.appendingPathComponent(
-                    filename
-                )
+                var exportURL = directory
+                    .appendingPathComponent(filename)
+                // Avoid overwriting files from previous exports
+                var suffix = 1
+                while fileManager.fileExists(
+                    atPath: exportURL.path
+                ) {
+                    let unique =
+                        "\(base)_\(index + 1)_\(suffix).\(ext)"
+                    exportURL = directory
+                        .appendingPathComponent(unique)
+                    suffix += 1
+                }
                 try service.exportEmail(
-                    detailed, to: url, format: format
+                    detailed, to: exportURL, format: format
                 )
             } catch {
-                failCount += 1
+                let subject = email.subjectText
+                    ?? "Email \(index + 1)"
+                failures.append(
+                    "\(subject): \(error.localizedDescription)"
+                )
             }
         }
-        if failCount > 0 {
+        if !failures.isEmpty {
+            let summary = failures.count == 1
+                ? failures[0]
+                : "\(failures.count) email(s) failed:\n"
+                    + failures.prefix(5).joined(separator: "\n")
+                    + (failures.count > 5
+                        ? "\n...and \(failures.count - 5) more"
+                        : "")
             errorMessage = PSTViewerError.exportError(
-                "\(failCount) email(s) failed to export."
+                summary
             ).errorDescription
         }
     }

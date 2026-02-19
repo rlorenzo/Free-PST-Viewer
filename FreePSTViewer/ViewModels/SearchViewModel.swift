@@ -76,7 +76,10 @@ class SearchViewModel: ObservableObject {
     private func buildFilters() -> SearchFilters {
         var dateRange: DateInterval?
         if let from = dateFrom, let to = dateTo {
-            dateRange = DateInterval(start: from, end: to)
+            // Swap if the user selected dates in the wrong order
+            let start = min(from, to)
+            let end = max(from, to)
+            dateRange = DateInterval(start: start, end: end)
         } else if let from = dateFrom {
             dateRange = DateInterval(start: from, end: .distantFuture)
         } else if let to = dateTo {
