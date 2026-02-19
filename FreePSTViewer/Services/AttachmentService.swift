@@ -112,7 +112,7 @@ class AttachmentService {
 
     private func confirmOpen(filename: String) -> Bool {
         let alert = NSAlert()
-        alert.messageText = "Open "\(filename)"?"
+        alert.messageText = "Open \"\(filename)\"?"
         alert.informativeText =
             "This file type may be executable. "
             + "Only open it if you trust the source."
