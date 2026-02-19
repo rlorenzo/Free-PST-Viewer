@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Checkout PstReader
+        uses: actions/checkout@v4
+        with:
+          repository: rlorenzo/PstReader
+          path: ../PstReader
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
 

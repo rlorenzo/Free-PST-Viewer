@@ -88,36 +88,15 @@ class EmailListViewModel: ObservableObject {
         format: ExportFormat
     ) async {
         let service = ExportService()
-        let fileManager = FileManager.default
         var failures: [String] = []
         for (index, email) in emails.enumerated() {
             do {
                 let detailed = try await parserService
                     .getMessageDetails(for: email)
-                var filename =
-                    ExportService.suggestedFilename(
-                        for: detailed, format: format
-                    )
-                // Avoid name collisions within this batch by
-                // appending index
-                let ext = format == .eml ? "eml" : "txt"
-                let base = String(
-                    filename.dropLast(ext.count + 1)
+                let exportURL = uniqueExportURL(
+                    in: directory, for: detailed,
+                    index: index, format: format
                 )
-                filename = "\(base)_\(index + 1).\(ext)"
-                var exportURL = directory
-                    .appendingPathComponent(filename)
-                // Avoid overwriting files from previous exports
-                var suffix = 1
-                while fileManager.fileExists(
-                    atPath: exportURL.path
-                ) {
-                    let unique =
-                        "\(base)_\(index + 1)_\(suffix).\(ext)"
-                    exportURL = directory
-                        .appendingPathComponent(unique)
-                    suffix += 1
-                }
                 try service.exportEmail(
                     detailed, to: exportURL, format: format
                 )
@@ -141,6 +120,30 @@ class EmailListViewModel: ObservableObject {
                 summary
             ).errorDescription
         }
+    }
+
+    private func uniqueExportURL(
+        in directory: URL,
+        for message: PstFile.Message,
+        index: Int,
+        format: ExportFormat
+    ) -> URL {
+        let ext = format == .eml ? "eml" : "txt"
+        let base = String(
+            ExportService.suggestedFilename(
+                for: message, format: format
+            ).dropLast(ext.count + 1)
+        )
+        let filename = "\(base)_\(index + 1).\(ext)"
+        var exportURL = directory.appendingPathComponent(filename)
+        var suffix = 1
+        let fileManager = FileManager.default
+        while fileManager.fileExists(atPath: exportURL.path) {
+            let unique = "\(base)_\(index + 1)_\(suffix).\(ext)"
+            exportURL = directory.appendingPathComponent(unique)
+            suffix += 1
+        }
+        return exportURL
     }
 
     private func sortEmails() {
