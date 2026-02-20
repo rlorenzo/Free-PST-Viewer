@@ -202,7 +202,7 @@
 			mainGroup = 3B8ED9FB2E3FB6C300291A6C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				3BAA00012E3FC00000000001 /* XCRemoteSwiftPackageReference "PstReader" */,
+				3BAA00012E3FC00000000001 /* XCLocalSwiftPackageReference "PstReader" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3B8EDA052E3FB6C300291A6C /* Products */;
@@ -553,21 +553,17 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		3BAA00012E3FC00000000001 /* XCRemoteSwiftPackageReference "PstReader" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/hughbe/PstReader";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.2;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		3BAA00012E3FC00000000001 /* XCLocalSwiftPackageReference "PstReader" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../PstReader;
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		3BAA00022E3FC00000000002 /* PstReader */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 3BAA00012E3FC00000000001 /* XCRemoteSwiftPackageReference "PstReader" */;
+			package = 3BAA00012E3FC00000000001 /* XCLocalSwiftPackageReference "PstReader" */;
 			productName = PstReader;
 		};
 /* End XCSwiftPackageProductDependency section */

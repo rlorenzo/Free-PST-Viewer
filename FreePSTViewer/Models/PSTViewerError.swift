@@ -5,6 +5,7 @@ enum PSTViewerError: LocalizedError {
     case invalidFileFormat(underlying: Error)
     case parseError(String)
     case exportError(String)
+    case attachmentError(String)
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,8 @@ enum PSTViewerError: LocalizedError {
             return "Error reading file: \(message)"
         case .exportError(let message):
             return "Export failed: \(message)"
+        case .attachmentError(let message):
+            return "Attachment error: \(message)"
         }
     }
 }

@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clone PstReader
+        run: git clone --depth 1 https://github.com/hughbe/PstReader.git ../PstReader
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
 

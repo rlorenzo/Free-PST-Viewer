@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 @preconcurrency import PstReader
 
@@ -8,6 +9,7 @@ class EmailListViewModel: ObservableObject {
     @Published var sortOrder: EmailSortOrder = .dateDescending
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var exportProgress: Double?
 
     var selectedMessage: PstFile.Message? {
         guard let index = selectedEmailIndex, emails.indices.contains(index) else { return nil }
@@ -55,6 +57,101 @@ class EmailListViewModel: ObservableObject {
         case .dateDescending, .subjectDescending, .senderDescending, .sizeDescending:
             return false
         }
+    }
+
+    func exportSingleEmail(
+        _ message: PstFile.Message,
+        format: ExportFormat
+    ) async {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue =
+            ExportService.suggestedFilename(
+                for: message, format: format
+            )
+        guard panel.runModal() == .OK,
+              let url = panel.url else { return }
+        do {
+            let detailed = try await parserService
+                .getMessageDetails(for: message)
+            let service = ExportService()
+            try service.exportEmail(
+                detailed, to: url, format: format
+            )
+        } catch {
+            errorMessage = PSTViewerError.exportError(
+                error.localizedDescription
+            ).errorDescription
+        }
+    }
+
+    func batchExport(
+        to directory: URL,
+        format: ExportFormat
+    ) async {
+        let service = ExportService()
+        let total = emails.count
+        exportProgress = 0
+        var failures: [String] = []
+        for (index, email) in emails.enumerated() {
+            do {
+                try Task.checkCancellation()
+                let detailed = try await parserService
+                    .getMessageDetails(for: email)
+                let exportURL = uniqueExportURL(
+                    in: directory, for: detailed,
+                    index: index, format: format
+                )
+                try service.exportEmail(
+                    detailed, to: exportURL, format: format
+                )
+            } catch is CancellationError {
+                break
+            } catch {
+                let subject = email.subjectText
+                    ?? "Email \(index + 1)"
+                failures.append(
+                    "\(subject): \(error.localizedDescription)"
+                )
+            }
+            exportProgress = Double(index + 1) / Double(total)
+        }
+        exportProgress = nil
+        if !failures.isEmpty {
+            let summary = failures.count == 1
+                ? failures[0]
+                : "\(failures.count) email(s) failed:\n"
+                    + failures.prefix(5).joined(separator: "\n")
+                    + (failures.count > 5
+                        ? "\n...and \(failures.count - 5) more"
+                        : "")
+            errorMessage = PSTViewerError.exportError(
+                summary
+            ).errorDescription
+        }
+    }
+
+    private func uniqueExportURL(
+        in directory: URL,
+        for message: PstFile.Message,
+        index: Int,
+        format: ExportFormat
+    ) -> URL {
+        let ext = format == .eml ? "eml" : "txt"
+        let base = String(
+            ExportService.suggestedFilename(
+                for: message, format: format
+            ).dropLast(ext.count + 1)
+        )
+        let filename = "\(base)_\(index + 1).\(ext)"
+        var exportURL = directory.appendingPathComponent(filename)
+        var suffix = 1
+        let fileManager = FileManager.default
+        while fileManager.fileExists(atPath: exportURL.path) {
+            let unique = "\(base)_\(index + 1)_\(suffix).\(ext)"
+            exportURL = directory.appendingPathComponent(unique)
+            suffix += 1
+        }
+        return exportURL
     }
 
     private func sortEmails() {
