@@ -112,34 +112,20 @@ struct SearchResultRow: View {
         query: String
     ) -> Text {
         guard !query.isEmpty else { return Text(text) }
-        let queryLowered = query.lowercased()
         var parts: [Text] = []
         var remaining = text[text.startIndex...]
 
-        while let range = remaining.lowercased().range(of: queryLowered) {
-            let startOffset = remaining.distance(
-                from: remaining.startIndex,
-                to: range.lowerBound
-            )
-            let textStart = remaining.index(
-                remaining.startIndex, offsetBy: startOffset
-            )
-            let endOffset = remaining.distance(
-                from: remaining.startIndex,
-                to: range.upperBound
-            )
-            let textEnd = remaining.index(
-                remaining.startIndex, offsetBy: endOffset
-            )
-
-            let before = remaining[remaining.startIndex..<textStart]
-            let match = remaining[textStart..<textEnd]
+        while let range = remaining.range(
+            of: query, options: [.caseInsensitive]
+        ) {
+            let before = remaining[remaining.startIndex..<range.lowerBound]
+            let match = remaining[range]
 
             parts.append(Text(before))
             parts.append(
                 Text(match).foregroundColor(.accentColor).bold()
             )
-            remaining = remaining[textEnd...]
+            remaining = remaining[range.upperBound...]
         }
         parts.append(Text(remaining))
         return parts.reduce(Text(""), +)

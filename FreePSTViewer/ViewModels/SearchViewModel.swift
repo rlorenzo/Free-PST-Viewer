@@ -30,7 +30,7 @@ class SearchViewModel: ObservableObject {
         errorMessage = nil
         searchResults = []
 
-        let currentQuery = query
+        let currentQuery = query.trimmingCharacters(in: .whitespaces)
         let currentIncludeBody = includeBody
         let filters = buildFilters()
 
@@ -49,9 +49,7 @@ class SearchViewModel: ObservableObject {
                 // Search was cancelled, no action needed
             } catch {
                 if !Task.isCancelled {
-                    errorMessage = PSTViewerError.parseError(
-                        error.localizedDescription
-                    ).errorDescription
+                    errorMessage = "Search failed: \(error.localizedDescription)"
                 }
             }
             if !Task.isCancelled {
