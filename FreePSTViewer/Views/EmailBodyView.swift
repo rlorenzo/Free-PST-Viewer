@@ -21,11 +21,13 @@ struct EmailBodyView: View {
                     .textSelection(.enabled)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel("Email body")
             }
         } else {
             Text("No content available")
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityLabel("No email content available")
         }
     }
 }

@@ -6,10 +6,15 @@ import Foundation
 /// bridged to async/await via withCheckedThrowingContinuation.
 class PSTParserService {
     private let queue = DispatchQueue(label: "com.freepstviewer.parser", qos: .userInitiated)
+    private var cache: [Data: PstFile.Message] = [:]
+    private var cacheOrder: [Data] = []
+    private let maxCacheSize = 50
 
     func loadPSTFile(from url: URL) async throws -> PstFile {
         try await withCheckedThrowingContinuation { continuation in
             self.queue.async {
+                self.cache.removeAll()
+                self.cacheOrder.removeAll()
                 continuation.resume(with: Result {
                     let file = try PstFile(contentsOf: url)
                     // Force rootFolder resolution on this background queue while
@@ -21,27 +26,77 @@ class PSTParserService {
         }
     }
 
-    func getMessages(from folder: PstFile.Folder) async throws -> [PstFile.Message] {
+    func clearCache() {
+        queue.async {
+            self.cache.removeAll()
+            self.cacheOrder.removeAll()
+        }
+    }
+
+    func getMessages(
+        from folder: PstFile.Folder
+    ) async throws -> [PstFile.Message] {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
-                continuation.resume(with: Result { try folder.getMessages() })
+                continuation.resume(with: Result {
+                    try folder.getMessages()
+                })
             }
         }
     }
 
-    func getMessageDetails(for message: PstFile.Message) async throws -> PstFile.Message {
+    func getMessageDetails(
+        for message: PstFile.Message
+    ) async throws -> PstFile.Message {
         try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                continuation.resume(with: Result { try message.getMessageDetails() })
+            self.queue.async {
+                if let key = message.searchKey,
+                   let cached = self.cache[key] {
+                    self.promoteCacheEntry(key)
+                    continuation.resume(returning: cached)
+                    return
+                }
+                continuation.resume(with: Result {
+                    let detailed = try message.getMessageDetails()
+                    if let key = message.searchKey {
+                        self.insertCacheEntry(key, value: detailed)
+                    }
+                    return detailed
+                })
             }
         }
     }
 
-    func getAttachmentDetails(for attachment: PstFile.Attachment) async throws -> PstFile.Attachment {
+    func getAttachmentDetails(
+        for attachment: PstFile.Attachment
+    ) async throws -> PstFile.Attachment {
         try await withCheckedThrowingContinuation { continuation in
             queue.async {
-                continuation.resume(with: Result { try attachment.getAttachmentDetails() })
+                continuation.resume(with: Result {
+                    try attachment.getAttachmentDetails()
+                })
             }
+        }
+    }
+
+    // MARK: - Cache helpers (must be called on self.queue)
+
+    private func promoteCacheEntry(_ key: Data) {
+        if let idx = cacheOrder.firstIndex(of: key) {
+            cacheOrder.remove(at: idx)
+            cacheOrder.append(key)
+        }
+    }
+
+    private func insertCacheEntry(
+        _ key: Data,
+        value: PstFile.Message
+    ) {
+        cache[key] = value
+        cacheOrder.append(key)
+        if cacheOrder.count > maxCacheSize {
+            let evicted = cacheOrder.removeFirst()
+            cache.removeValue(forKey: evicted)
         }
     }
 }
