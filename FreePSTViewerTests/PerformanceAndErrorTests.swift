@@ -60,10 +60,9 @@ struct MessageDetailCachingTests {
 
 // MARK: - EmailListViewModel Chunking Tests
 
-@MainActor
 struct EmailListViewModelChunkingTests {
 
-    @Test func loadEmailsChunksDisplay() async throws {
+    @Test @MainActor func loadEmailsChunksDisplay() async throws {
         let fx = try await loadFixtureRoot("test_unicode.pst")
         guard let folder = try await firstFolderWithEmails(
             in: fx.root, service: fx.service
@@ -79,13 +78,13 @@ struct EmailListViewModelChunkingTests {
         #expect(viewModel.canLoadMore == false)
     }
 
-    @Test func canLoadMoreIsFalseWhenAllDisplayed() {
+    @Test @MainActor func canLoadMoreIsFalseWhenAllDisplayed() {
         let service = PSTParserService()
         let viewModel = EmailListViewModel(parserService: service)
         #expect(viewModel.canLoadMore == false)
     }
 
-    @Test func loadMoreDoesNothingWhenNoMore() async throws {
+    @Test @MainActor func loadMoreDoesNothingWhenNoMore() async throws {
         let fx = try await loadFixtureRoot("test_unicode.pst")
         guard let folder = try await firstFolderWithEmails(
             in: fx.root, service: fx.service
@@ -99,7 +98,7 @@ struct EmailListViewModelChunkingTests {
         #expect(viewModel.emails.count == countBefore)
     }
 
-    @Test func sortPreservesChunking() async throws {
+    @Test @MainActor func sortPreservesChunking() async throws {
         let fx = try await loadFixtureRoot("test_unicode.pst")
         guard let folder = try await firstFolderWithEmails(
             in: fx.root, service: fx.service
@@ -116,10 +115,9 @@ struct EmailListViewModelChunkingTests {
 
 // MARK: - Error Handling Tests
 
-@MainActor
 struct ErrorHandlingTests {
 
-    @Test func warningMessageSetOnLoadFailure() async {
+    @Test @MainActor func defaultStateHasNoWarnings() async {
         let service = PSTParserService()
         let viewModel = EmailListViewModel(parserService: service)
 
@@ -129,7 +127,7 @@ struct ErrorHandlingTests {
         #expect(viewModel.errorMessage == nil)
     }
 
-    @Test func dismissWarningClearsMessage() async throws {
+    @Test @MainActor func dismissWarningClearsMessage() async throws {
         let service = PSTParserService()
         let viewModel = EmailListViewModel(parserService: service)
 
@@ -141,7 +139,7 @@ struct ErrorHandlingTests {
         #expect(viewModel.warningMessage == nil)
     }
 
-    @Test func loadEmailsClearsWarningOnSuccess() async throws {
+    @Test @MainActor func loadEmailsClearsWarningOnSuccess() async throws {
         let fx = try await loadFixtureRoot("test_unicode.pst")
         guard let folder = try await firstFolderWithEmails(
             in: fx.root, service: fx.service
