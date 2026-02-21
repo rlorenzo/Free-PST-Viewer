@@ -47,14 +47,22 @@ struct MessageDetailCachingTests {
         let messages = try await fx.service.getMessages(from: folder)
         let message = try #require(messages.first)
 
-        _ = try await fx.service.getMessageDetails(for: message)
+        let firstDetails = try await fx.service.getMessageDetails(
+            for: message
+        )
         // Loading a new file should clear the cache
         _ = try await fx.service.loadPSTFile(
             from: fixtureURL("test_unicode.pst")
         )
-        // After reload, old message objects are stale, but the cache
-        // should have been cleared (no crash, no stale data)
-        #expect(true)
+        // After reload, we should still be able to fetch details
+        // without crashes (verifies cache was safely cleared)
+        let secondDetails = try await fx.service.getMessageDetails(
+            for: message
+        )
+
+        #expect(firstDetails.hasDetails)
+        #expect(secondDetails.hasDetails)
+        #expect(firstDetails.subjectText == secondDetails.subjectText)
     }
 }
 

@@ -21,7 +21,7 @@ struct EmailBodyView: View {
                     .textSelection(.enabled)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("Email body")
+                    .accessibilityHint("Email body content")
             }
         } else {
             Text("No content available")

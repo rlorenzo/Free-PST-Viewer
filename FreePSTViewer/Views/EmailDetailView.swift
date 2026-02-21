@@ -204,7 +204,7 @@ struct FullHeaderSection: View {
             }
         }
         if let cls = message.messageClass {
-            lines.append("Content-Type: \(cls)")
+            lines.append("Message-Class: \(cls)")
         }
         if lines.isEmpty {
             return "No header information available."

@@ -93,7 +93,7 @@ struct FolderRow: View {
             .accessibilityLabel(
                 "\(folderName) folder, \(itemCount) items"
             )
-            .accessibilityHint("Double-click to select this folder")
+            .accessibilityHint("Click to select this folder")
             .accessibilityAddTraits(.isButton)
 
             if isExpanded {

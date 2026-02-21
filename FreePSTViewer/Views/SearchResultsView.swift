@@ -39,8 +39,10 @@ struct SearchResultsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .accessibilityLabel(
-                            "\(viewModel.searchResults.count)"
-                            + " search results found"
+                            "\(viewModel.searchResults.count) "
+                            + (viewModel.searchResults.count == 1
+                                ? "search result found"
+                                : "search results found")
                         )
                         Spacer()
                         Button("Clear search") {

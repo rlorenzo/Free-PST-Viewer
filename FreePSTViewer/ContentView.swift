@@ -142,6 +142,10 @@ struct ContentView: View {
         _ providers: [NSItemProvider]
     ) -> Bool {
         guard let provider = providers.first else { return false }
+        if let name = provider.suggestedName {
+            let ext = (name as NSString).pathExtension.lowercased()
+            guard ext == "pst" || ext == "ost" else { return false }
+        }
         _ = provider.loadObject(ofClass: URL.self) { url, _ in
             guard let url = url else { return }
             let ext = url.pathExtension.lowercased()
