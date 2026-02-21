@@ -1,5 +1,5 @@
 {
-  "originHash" : "0af2ed9bf5797d5540dbf67047f0c688a01f357c286b3839c8313aa4e1f08d38",
+  "originHash" : "8c3a62b48345ce3c519e5524ec0d15e3e3e86185fe254dcbc70d18c5f183e60a",
   "pins" : [
     {
       "identity" : "datastream",
@@ -8,6 +8,14 @@
       "state" : {
         "revision" : "36347be43d95e15263a37883ffc341019fdb733b",
         "version" : "2.0.5"
+      }
+    },
+    {
+      "identity" : "pstreader",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hughbe/PstReader",
+      "state" : {
+        "revision" : "033b8c2c0f6c4576f110b6223a5653e4754d2a2c"
       }
     },
     {
