@@ -33,10 +33,17 @@ struct SearchResultsView: View {
                     HStack {
                         Text(
                             "\(viewModel.searchResults.count) result"
-                            + (viewModel.searchResults.count == 1 ? "" : "s")
+                            + (viewModel.searchResults.count == 1
+                                ? "" : "s")
                         )
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .accessibilityLabel(
+                            "\(viewModel.searchResults.count) "
+                            + (viewModel.searchResults.count == 1
+                                ? "search result found"
+                                : "search results found")
+                        )
                         Spacer()
                         Button("Clear search") {
                             selectedIndex = nil
@@ -105,6 +112,19 @@ struct SearchResultRow: View {
             }
         }
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(resultAccessibilityLabel)
+    }
+
+    private var resultAccessibilityLabel: String {
+        let sender = email.senderDisplayString ?? "Unknown Sender"
+        let subject = email.subjectText ?? "No Subject"
+        var label = "Email from \(sender), subject: \(subject)"
+        if let date = email.date {
+            let formatted = date.formatted(date: .abbreviated, time: .omitted)
+            label += ", \(formatted)"
+        }
+        return label
     }
 
     private func highlightedText(

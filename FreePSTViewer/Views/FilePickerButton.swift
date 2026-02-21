@@ -9,6 +9,8 @@ struct FilePickerButton: View {
             openFile()
         }
         .keyboardShortcut("o", modifiers: .command)
+        .accessibilityLabel("Open Outlook data file")
+        .accessibilityHint("Opens a file picker for PST and OST files")
     }
 
     private func openFile() {

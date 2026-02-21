@@ -18,14 +18,21 @@ struct ContactBodyView: View {
 
                 if !message.contactPhoneNumbers.isEmpty {
                     contactSection("Phone") {
-                        ForEach(message.contactPhoneNumbers, id: \.label) { entry in
+                        ForEach(
+                            message.contactPhoneNumbers,
+                            id: \.label
+                        ) { entry in
                             HStack(spacing: 4) {
                                 Text(entry.label)
                                     .foregroundColor(.secondary)
-                                    .frame(width: 100, alignment: .trailing)
+                                    .frame(
+                                        width: 100,
+                                        alignment: .trailing
+                                    )
                                 Text(entry.number)
                                     .textSelection(.enabled)
                             }
+                            .accessibilityElement(children: .combine)
                         }
                     }
                 }
@@ -76,6 +83,9 @@ struct ContactBodyView: View {
                     Text("No contact details available")
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityLabel(
+                            "No contact details available"
+                        )
                 }
             }
             .padding()
@@ -120,5 +130,6 @@ struct ContactBodyView: View {
             Text(value)
                 .textSelection(.enabled)
         }
+        .accessibilityElement(children: .combine)
     }
 }

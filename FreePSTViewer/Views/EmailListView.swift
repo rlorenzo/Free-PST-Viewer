@@ -22,7 +22,8 @@ struct EmailListView: View {
                     maxWidth: .infinity,
                     maxHeight: .infinity
                 )
-            } else if viewModel.emails.isEmpty {
+            } else if viewModel.emails.isEmpty
+                        && viewModel.warningMessage == nil {
                 Text("No items in this folder")
                     .foregroundColor(.secondary)
                     .frame(
@@ -30,21 +31,9 @@ struct EmailListView: View {
                         maxHeight: .infinity
                     )
             } else {
-                List(
-                    selection: $viewModel.selectedEmailIndex
-                ) {
-                    ForEach(
-                        Array(
-                            viewModel.emails.enumerated()
-                        ),
-                        id: \.offset
-                    ) { index, email in
-                        EmailRow(
-                            email: email,
-                            onExport: onExport
-                        )
-                        .tag(index)
-                    }
+                VStack(spacing: 0) {
+                    warningBanner
+                    emailList
                 }
             }
         }
@@ -54,6 +43,57 @@ struct EmailListView: View {
             }
             ToolbarItem(placement: .automatic) {
                 BatchExportMenu(viewModel: viewModel)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var warningBanner: some View {
+        if let warning = viewModel.warningMessage {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                Text(warning)
+                    .font(.callout)
+                    .accessibilityLabel("Warning: \(warning)")
+                Spacer()
+                Button {
+                    viewModel.dismissWarning()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss warning")
+            }
+            .padding(8)
+            .background(Color.orange.opacity(0.15))
+        }
+    }
+
+    private var emailList: some View {
+        List(selection: $viewModel.selectedEmailIndex) {
+            ForEach(
+                Array(viewModel.emails.enumerated()),
+                id: \.offset
+            ) { index, email in
+                EmailRow(
+                    email: email,
+                    onExport: onExport
+                )
+                .tag(index)
+                .onAppear {
+                    if index == viewModel.emails.count - 1 {
+                        viewModel.loadMore()
+                    }
+                }
+            }
+            if viewModel.canLoadMore {
+                Button("Load More") {
+                    viewModel.loadMore()
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel("Load more emails")
             }
         }
     }

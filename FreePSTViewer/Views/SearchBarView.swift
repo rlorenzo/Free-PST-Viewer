@@ -14,6 +14,7 @@ struct SearchBarView: View {
                     .foregroundColor(.secondary)
                 TextField("Search emails...", text: $viewModel.query)
                     .textFieldStyle(.plain)
+                    .accessibilityLabel("Search emails")
                     .onSubmit {
                         viewModel.performSearch(in: folders)
                     }
@@ -25,16 +26,23 @@ struct SearchBarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(6)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+            .background(
+                .quaternary,
+                in: RoundedRectangle(cornerRadius: 8)
+            )
 
             Button {
                 showFilters.toggle()
             } label: {
-                Image(systemName: "line.3.horizontal.decrease.circle")
+                Image(
+                    systemName: "line.3.horizontal.decrease.circle"
+                )
             }
+            .accessibilityLabel("Search filters")
             .popover(isPresented: $showFilters) {
                 SearchFilterPopover(viewModel: viewModel)
             }
@@ -42,6 +50,7 @@ struct SearchBarView: View {
             Button("Search") {
                 viewModel.performSearch(in: folders)
             }
+            .accessibilityLabel("Execute search")
             .disabled(
                 viewModel.query
                     .trimmingCharacters(in: .whitespaces).isEmpty

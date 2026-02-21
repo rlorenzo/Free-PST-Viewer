@@ -43,6 +43,26 @@ FreePSTViewer/
 
 PstReader handles all PST binary parsing, MAPI property resolution, and lazy data loading via memory-mapped I/O.
 
+## Supported File Formats
+
+| Format | Extension | Description |
+| ------ | --------- | ----------- |
+| Unicode PST | `.pst` | Outlook Personal Storage (Unicode, post-2003) |
+| ANSI PST | `.pst` | Outlook Personal Storage (ANSI, pre-2003) |
+| OST | `.ost` | Offline Storage Table (Exchange cached mode) |
+
+Files can be opened via the **Open PST File...** button (Cmd+O) or by dragging a `.pst`/`.ost` file onto the application window.
+
+## Features
+
+- **Folder navigation** — hierarchical tree with expand/collapse and item counts
+- **Email viewing** — sortable list with HTML rendering, plain text fallback, and inline images
+- **Search** — metadata and optional body search with date range and sender filters
+- **Export** — single or batch export to `.eml` (RFC 2822) or `.txt` with timestamp preservation
+- **Attachments** — save or open attachments with dangerous file type warnings
+- **Full headers** — expandable transport headers or MAPI property fallback with copy-to-clipboard
+- **Accessibility** — VoiceOver labels, keyboard navigation (Cmd+O), drag-and-drop file opening
+
 ## Testing
 
 ```bash

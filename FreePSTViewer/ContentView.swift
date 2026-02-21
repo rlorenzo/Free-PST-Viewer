@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 @preconcurrency import PstReader
 
 struct ContentView: View {
@@ -40,6 +41,10 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityLabel("No file open")
+                .accessibilityHint(
+                    "Drag a PST or OST file here or use the Open button"
+                )
             }
         } content: {
             contentPane
@@ -52,18 +57,7 @@ struct ContentView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 FilePickerButton { url in
-                    Task {
-                        attachmentService.cleanupTempFiles()
-                        detailViewModel.clear()
-                        searchViewModel.clearSearch()
-                        selectedSearchIndex = nil
-                        await pstViewModel.loadFile(from: url)
-                        folderViewModel.selectedFolder = nil
-                        folderViewModel.selectedFolderID = nil
-                        if let root = pstViewModel.currentFile?.userRootFolder {
-                            folderViewModel.expandTopLevel(rootFolder: root)
-                        }
-                    }
+                    loadFile(from: url)
                 }
             }
             ToolbarItem(placement: .automatic) {
@@ -92,6 +86,9 @@ struct ContentView: View {
             Button("OK") { pstViewModel.errorMessage = nil }
         } message: {
             Text(pstViewModel.errorMessage ?? "")
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            handleFileDrop(providers)
         }
         .onChange(of: selectedSearchIndex) { _, newIndex in
             if let index = newIndex,
@@ -139,6 +136,40 @@ struct ContentView: View {
             return [root]
         }
         return []
+    }
+
+    private func handleFileDrop(
+        _ providers: [NSItemProvider]
+    ) -> Bool {
+        guard let provider = providers.first else { return false }
+        if let name = provider.suggestedName {
+            let ext = (name as NSString).pathExtension.lowercased()
+            guard ext == "pst" || ext == "ost" else { return false }
+        }
+        _ = provider.loadObject(ofClass: URL.self) { url, _ in
+            guard let url = url else { return }
+            let ext = url.pathExtension.lowercased()
+            guard ext == "pst" || ext == "ost" else { return }
+            Task { @MainActor in
+                loadFile(from: url)
+            }
+        }
+        return true
+    }
+
+    private func loadFile(from url: URL) {
+        Task {
+            attachmentService.cleanupTempFiles()
+            detailViewModel.clear()
+            searchViewModel.clearSearch()
+            selectedSearchIndex = nil
+            await pstViewModel.loadFile(from: url)
+            folderViewModel.selectedFolder = nil
+            folderViewModel.selectedFolderID = nil
+            if let root = pstViewModel.currentFile?.userRootFolder {
+                folderViewModel.expandTopLevel(rootFolder: root)
+            }
+        }
     }
 }
 
