@@ -50,19 +50,29 @@ struct MessageDetailCachingTests {
         let firstDetails = try await fx.service.getMessageDetails(
             for: message
         )
-        // Loading a new file should clear the cache
-        _ = try await fx.service.loadPSTFile(
+        #expect(firstDetails.hasDetails)
+
+        // Reload the same file — this should clear the cache
+        let reloadedFile = try await fx.service.loadPSTFile(
             from: fixtureURL("test_unicode.pst")
         )
-        // After reload, we should still be able to fetch details
-        // without crashes (verifies cache was safely cleared)
-        let secondDetails = try await fx.service.getMessageDetails(
-            for: message
+        let reloadedRoot = try #require(reloadedFile.rootFolder)
+        guard let freshFolder = try await firstFolderWithEmails(
+            in: reloadedRoot, service: fx.service
+        ) else { return }
+        let freshMessages = try await fx.service.getMessages(
+            from: freshFolder
         )
+        let freshMessage = try #require(freshMessages.first)
 
-        #expect(firstDetails.hasDetails)
+        // Fetch details from the fresh message after cache was cleared
+        let secondDetails = try await fx.service.getMessageDetails(
+            for: freshMessage
+        )
         #expect(secondDetails.hasDetails)
-        #expect(firstDetails.subjectText == secondDetails.subjectText)
+        #expect(
+            firstDetails.subjectText == secondDetails.subjectText
+        )
     }
 }
 
