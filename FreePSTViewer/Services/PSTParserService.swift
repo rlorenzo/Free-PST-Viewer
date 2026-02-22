@@ -92,6 +92,9 @@ class PSTParserService {
         _ key: Data,
         value: PstFile.Message
     ) {
+        if let idx = cacheOrder.firstIndex(of: key) {
+            cacheOrder.remove(at: idx)
+        }
         cache[key] = value
         cacheOrder.append(key)
         if cacheOrder.count > maxCacheSize {
