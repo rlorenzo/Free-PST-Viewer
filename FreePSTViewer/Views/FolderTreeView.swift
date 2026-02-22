@@ -37,12 +37,24 @@ struct FolderRow: View {
         !folder.children.isEmpty
     }
 
+    private var folderName: String {
+        folder.name ?? "Unknown"
+    }
+
+    private var itemCount: UInt32 {
+        folder.emailCount ?? 0
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 if hasChildren {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    Image(systemName: isExpanded
+                        ? "chevron.down" : "chevron.right")
                         .font(.caption)
+                        .accessibilityLabel(
+                            isExpanded ? "Collapse" : "Expand"
+                        )
                         .onTapGesture {
                             viewModel.toggleExpansion(id: folderID)
                         }
@@ -55,12 +67,12 @@ struct FolderRow: View {
                 Image(systemName: "folder")
                     .foregroundColor(.accentColor)
 
-                Text(folder.name ?? "Unknown")
+                Text(folderName)
 
                 Spacer()
 
-                if let count = folder.emailCount, count > 0 {
-                    Text("\(count)")
+                if itemCount > 0 {
+                    Text("\(itemCount)")
                         .foregroundColor(.secondary)
                         .font(.caption)
                 }
@@ -73,12 +85,29 @@ struct FolderRow: View {
                     viewModel.toggleExpansion(id: folderID)
                 }
             }
-            .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
+            .background(
+                isSelected
+                    ? Color.accentColor.opacity(0.2) : Color.clear
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(
+                "\(folderName) folder, \(itemCount) items"
+            )
+            .accessibilityHint("Click to select this folder")
+            .accessibilityAddTraits(.isButton)
 
             if isExpanded {
-                ForEach(Array(folder.children.enumerated()), id: \.offset) { index, child in
-                    FolderRow(folder: child, viewModel: viewModel, depth: depth + 1, indexPath: indexPath + [index])
-                        .padding(.leading, 16)
+                ForEach(
+                    Array(folder.children.enumerated()),
+                    id: \.offset
+                ) { index, child in
+                    FolderRow(
+                        folder: child,
+                        viewModel: viewModel,
+                        depth: depth + 1,
+                        indexPath: indexPath + [index]
+                    )
+                    .padding(.leading, 16)
                 }
             }
         }

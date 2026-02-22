@@ -10,9 +10,19 @@ class EmailListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var exportProgress: Double?
+    @Published var warningMessage: String?
+
+    private var allEmails: [PstFile.Message] = []
+    private(set) var displayedCount = 0
+    static let chunkSize = 500
+
+    var canLoadMore: Bool {
+        displayedCount < allEmails.count
+    }
 
     var selectedMessage: PstFile.Message? {
-        guard let index = selectedEmailIndex, emails.indices.contains(index) else { return nil }
+        guard let index = selectedEmailIndex,
+              emails.indices.contains(index) else { return nil }
         return emails[index]
     }
 
@@ -25,20 +35,36 @@ class EmailListViewModel: ObservableObject {
     func loadEmails(for folder: PstFile.Folder) async {
         isLoading = true
         errorMessage = nil
+        warningMessage = nil
         selectedEmailIndex = nil
         do {
-            emails = try await parserService.getMessages(from: folder)
-            sortEmails()
+            allEmails = try await parserService.getMessages(from: folder)
+            sortAllEmails()
+            displayedCount = min(Self.chunkSize, allEmails.count)
+            emails = Array(allEmails.prefix(displayedCount))
         } catch {
-            errorMessage = PSTViewerError.parseError(error.localizedDescription).errorDescription
+            warningMessage = "This folder may contain corrupted data "
+                + "and could not be fully loaded."
+            allEmails = []
             emails = []
+            displayedCount = 0
         }
         isLoading = false
     }
 
+    func loadMore() {
+        guard canLoadMore else { return }
+        displayedCount = min(
+            displayedCount + Self.chunkSize,
+            allEmails.count
+        )
+        emails = Array(allEmails.prefix(displayedCount))
+    }
+
     func sort(by order: EmailSortOrder) {
         sortOrder = order
-        sortEmails()
+        sortAllEmails()
+        emails = Array(allEmails.prefix(displayedCount))
     }
 
     var sortColumnLabel: String {
@@ -52,9 +78,11 @@ class EmailListViewModel: ObservableObject {
 
     var isSortAscending: Bool {
         switch sortOrder {
-        case .dateAscending, .subjectAscending, .senderAscending, .sizeAscending:
+        case .dateAscending, .subjectAscending,
+             .senderAscending, .sizeAscending:
             return true
-        case .dateDescending, .subjectDescending, .senderDescending, .sizeDescending:
+        case .dateDescending, .subjectDescending,
+             .senderDescending, .sizeDescending:
             return false
         }
     }
@@ -89,10 +117,10 @@ class EmailListViewModel: ObservableObject {
         format: ExportFormat
     ) async {
         let service = ExportService()
-        let total = emails.count
+        let total = allEmails.count
         exportProgress = 0
         var failures: [String] = []
-        for (index, email) in emails.enumerated() {
+        for (index, email) in allEmails.enumerated() {
             do {
                 try Task.checkCancellation()
                 let detailed = try await parserService
@@ -130,6 +158,10 @@ class EmailListViewModel: ObservableObject {
         }
     }
 
+    func dismissWarning() {
+        warningMessage = nil
+    }
+
     private func uniqueExportURL(
         in directory: URL,
         for message: PstFile.Message,
@@ -154,24 +186,24 @@ class EmailListViewModel: ObservableObject {
         return exportURL
     }
 
-    private func sortEmails() {
+    private func sortAllEmails() {
         switch sortOrder {
         case .dateDescending:
-            emails.sort { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
+            allEmails.sort { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }
         case .dateAscending:
-            emails.sort { ($0.date ?? .distantPast) < ($1.date ?? .distantPast) }
+            allEmails.sort { ($0.date ?? .distantPast) < ($1.date ?? .distantPast) }
         case .subjectDescending:
-            emails.sort { ($0.subjectText ?? "") > ($1.subjectText ?? "") }
+            allEmails.sort { ($0.subjectText ?? "") > ($1.subjectText ?? "") }
         case .subjectAscending:
-            emails.sort { ($0.subjectText ?? "") < ($1.subjectText ?? "") }
+            allEmails.sort { ($0.subjectText ?? "") < ($1.subjectText ?? "") }
         case .senderDescending:
-            emails.sort { ($0.senderDisplayString ?? "") > ($1.senderDisplayString ?? "") }
+            allEmails.sort { ($0.senderDisplayString ?? "") > ($1.senderDisplayString ?? "") }
         case .senderAscending:
-            emails.sort { ($0.senderDisplayString ?? "") < ($1.senderDisplayString ?? "") }
+            allEmails.sort { ($0.senderDisplayString ?? "") < ($1.senderDisplayString ?? "") }
         case .sizeDescending:
-            emails.sort { ($0.sizeInBytes ?? 0) > ($1.sizeInBytes ?? 0) }
+            allEmails.sort { ($0.sizeInBytes ?? 0) > ($1.sizeInBytes ?? 0) }
         case .sizeAscending:
-            emails.sort { ($0.sizeInBytes ?? 0) < ($1.sizeInBytes ?? 0) }
+            allEmails.sort { ($0.sizeInBytes ?? 0) < ($1.sizeInBytes ?? 0) }
         }
     }
 }

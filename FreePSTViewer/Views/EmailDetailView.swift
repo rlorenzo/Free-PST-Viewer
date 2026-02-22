@@ -1,3 +1,5 @@
+import AppKit
+@preconcurrency import MAPI
 import SwiftUI
 @preconcurrency import PstReader
 
@@ -83,6 +85,8 @@ struct EmailHeaderView: View {
                     attachmentService: attachmentService
                 )
             }
+
+            FullHeaderSection(message: message)
         }
     }
 
@@ -105,6 +109,129 @@ struct EmailHeaderView: View {
         formatter.timeStyle = .medium
         return formatter.string(from: date)
     }
+}
+
+struct FullHeaderSection: View {
+    let message: PstFile.Message
+    @State private var showFullHeaders = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                toggleButton
+                Spacer()
+                if showFullHeaders { copyButton }
+            }
+
+            if showFullHeaders {
+                headerContent
+            }
+        }
+    }
+
+    private var toggleButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showFullHeaders.toggle()
+            }
+        } label: {
+            HStack(spacing: 2) {
+                Image(systemName: showFullHeaders
+                    ? "chevron.down" : "chevron.right")
+                Text(showFullHeaders
+                    ? "Hide Headers" : "Show Headers")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(showFullHeaders
+            ? "Hide full email headers"
+            : "Show full email headers")
+    }
+
+    private var copyButton: some View {
+        Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(
+                fullHeaderText, forType: .string
+            )
+        } label: {
+            HStack(spacing: 2) {
+                Image(systemName: "doc.on.doc")
+                Text("Copy Headers")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Copy email headers to clipboard")
+    }
+
+    private var headerContent: some View {
+        ScrollView {
+            Text(fullHeaderText)
+                .font(.system(.caption, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxHeight: 200)
+        .padding(8)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(4)
+    }
+
+    private var fullHeaderText: String {
+        if let headers = message.transportMessageHeaders,
+           !headers.isEmpty {
+            return headers
+        }
+        return buildMapiHeaders()
+    }
+
+    private func buildMapiHeaders() -> String {
+        var lines: [String] = []
+        if let id = message.internetMessageId {
+            lines.append("Message-ID: \(id)")
+        }
+        if let imp = message.importance {
+            lines.append("Importance: \(formatImportance(imp))")
+        }
+        if let flags = message.messageFlags {
+            let desc = formatFlags(flags)
+            if !desc.isEmpty {
+                lines.append("Flags: \(desc)")
+            }
+        }
+        if let cls = message.messageClass {
+            lines.append("Message-Class: \(cls)")
+        }
+        if lines.isEmpty {
+            return "No header information available."
+        }
+        return lines.joined(separator: "\n")
+    }
+}
+
+private func formatImportance(_ importance: MessageImportance) -> String {
+    switch importance {
+    case .low: return "Low"
+    case .normal: return "Normal"
+    case .high: return "High"
+    }
+}
+
+private func formatFlags(_ flags: MessageFlags) -> String {
+    var parts: [String] = []
+    if flags.contains(.read) { parts.append("Read") }
+    if flags.contains(.unsent) { parts.append("Unsent") }
+    if flags.contains(.hasAttachment) {
+        parts.append("Has Attachments")
+    }
+    if flags.contains(.fromMe) { parts.append("From Me") }
+    if flags.contains(.unmodified) { parts.append("Unmodified") }
+    if flags.contains(.submitted) { parts.append("Submitted") }
+    return parts.joined(separator: ", ")
 }
 
 struct AttachmentListView: View {
