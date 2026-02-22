@@ -4,7 +4,7 @@ import Foundation
 /// Service that wraps PstReader operations on a background queue.
 /// PstReader types are not Sendable, so all access goes through a serial DispatchQueue
 /// bridged to async/await via withCheckedThrowingContinuation.
-class PSTParserService {
+class PSTParserService: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.freepstviewer.parser", qos: .userInitiated)
     private var cache: [Data: PstFile.Message] = [:]
     private var cacheOrder: [Data] = []
