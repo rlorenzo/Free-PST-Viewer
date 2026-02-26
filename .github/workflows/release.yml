@@ -42,10 +42,38 @@ jobs:
           fi
           cp -R "$APP_PATH" "$RUNNER_TEMP/Free PST Viewer.app"
 
+      - name: Stage DMG contents
+        run: |
+          mkdir "$RUNNER_TEMP/dmg-stage"
+          cp -R "$RUNNER_TEMP/Free PST Viewer.app" "$RUNNER_TEMP/dmg-stage/"
+          cat > "$RUNNER_TEMP/dmg-stage/README FIRST.txt" << 'README'
+          ╔══════════════════════════════════════════════════════╗
+          ║           Free PST Viewer — Installation            ║
+          ╚══════════════════════════════════════════════════════╝
+
+          1. Drag "Free PST Viewer.app" to your Applications folder.
+
+          2. Open Terminal and run:
+
+               xattr -cr "/Applications/Free PST Viewer.app"
+
+          3. Right-click (or Control-click) the app and choose "Open".
+
+          4. Click "Open" in the security dialog.
+
+          WHY IS THIS NEEDED?
+          This app is free and open-source but is not signed with an
+          Apple Developer certificate. macOS quarantines unsigned apps
+          downloaded from the internet. The xattr command removes the
+          quarantine flag. You only need to do this once.
+
+          Source code: https://github.com/rlorenzo/Free-PST-Viewer
+          README
+
       - name: Create DMG
         run: |
           hdiutil create -volname "Free PST Viewer" \
-            -srcfolder "$RUNNER_TEMP/Free PST Viewer.app" \
+            -srcfolder "$RUNNER_TEMP/dmg-stage" \
             -ov -format UDZO \
             "$RUNNER_TEMP/FreePSTViewer.dmg"
 
@@ -63,7 +91,11 @@ jobs:
 
             1. Download **FreePSTViewer.dmg** below
             2. Open the `.dmg` and drag **Free PST Viewer** to your Applications folder
-            3. Right-click (or Control-click) the app and choose **Open**
-            4. Click **Open** in the security dialog
+            3. Open **Terminal** and run:
+               ```
+               xattr -cr "/Applications/Free PST Viewer.app"
+               ```
+            4. Right-click (or Control-click) the app and choose **Open**
+            5. Click **Open** in the security dialog
 
-            > This app is not signed with an Apple Developer certificate. The right-click step is only needed on first launch — after that it opens normally.
+            > **Why the extra step?** This app is free and open-source but is not signed with an Apple Developer certificate. macOS quarantines unsigned apps downloaded from the internet. The `xattr` command removes the quarantine flag. You only need to do this once.
