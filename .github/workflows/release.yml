@@ -33,8 +33,14 @@ jobs:
 
       - name: Export app from archive
         run: |
-          cp -R "$RUNNER_TEMP/FreePSTViewer.xcarchive/Products/Applications/Free PST Viewer.app" \
-            "$RUNNER_TEMP/Free PST Viewer.app"
+          APP_PATH=$(find "$RUNNER_TEMP/FreePSTViewer.xcarchive" -name "*.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found in archive. Archive contents:"
+            find "$RUNNER_TEMP/FreePSTViewer.xcarchive" -maxdepth 4
+            exit 1
+          fi
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Free PST Viewer.app"
 
       - name: Create DMG
         run: |
