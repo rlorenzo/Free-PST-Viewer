@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+
+      - name: Resolve SPM dependencies
+        run: xcodebuild -resolvePackageDependencies -project FreePSTViewer.xcodeproj -scheme FreePSTViewer
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project FreePSTViewer.xcodeproj \
+            -scheme FreePSTViewer \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/FreePSTViewer.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export app from archive
+        run: |
+          cp -R "$RUNNER_TEMP/FreePSTViewer.xcarchive/Products/Applications/Free PST Viewer.app" \
+            "$RUNNER_TEMP/Free PST Viewer.app"
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "Free PST Viewer" \
+            -srcfolder "$RUNNER_TEMP/Free PST Viewer.app" \
+            -ov -format UDZO \
+            "$RUNNER_TEMP/FreePSTViewer.dmg"
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.temp }}/FreePSTViewer.dmg
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            1. Download **FreePSTViewer.dmg** below
+            2. Open the `.dmg` and drag **Free PST Viewer** to your Applications folder
+            3. Right-click (or Control-click) the app and choose **Open**
+            4. Click **Open** in the security dialog
+
+            > This app is not signed with an Apple Developer certificate. The right-click step is only needed on first launch — after that it opens normally.

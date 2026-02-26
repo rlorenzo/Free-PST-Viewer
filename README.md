@@ -2,6 +2,18 @@
 
 A free, native macOS application for browsing and viewing Microsoft Outlook data files (.pst and .ost). Built with SwiftUI and [PstReader](https://github.com/hughbe/PstReader), a pure Swift implementation of the MS-PST specification.
 
+## Download
+
+Download the latest release from the [Releases page](https://github.com/rlorenzo/Free-PST-Viewer/releases/latest).
+
+**First launch (Gatekeeper):** This app is not signed with an Apple Developer certificate, so macOS will block it by default. To open it:
+
+1. Download and open the `.dmg`, then drag **Free PST Viewer** to your Applications folder
+2. Right-click (or Control-click) the app and choose **Open**
+3. Click **Open** in the security dialog
+
+This is only required on first launch — after that the app opens normally.
+
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
